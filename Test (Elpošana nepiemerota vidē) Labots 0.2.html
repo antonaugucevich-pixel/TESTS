@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aparātu un Glābšanas Darbu Tests</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between font-sans">
+
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 shadow-md py-4 px-6">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-wide text-cyan-400">Elpošanas Aparātu un Drošības Noteikumu Tests</h1>
+            <div id="quiz-progress-header" class="text-sm text-slate-400 hidden"></div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-3xl w-full mx-auto p-4 sm:p-6 my-auto flex-grow flex flex-col justify-center">
+
+        <!-- Welcome Screen -->
+        <div id="welcome-screen" class="bg-slate-800 border border-slate-700 rounded-2xl p-6 sm:p-8 shadow-xl text-center fade-in">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-cyan-500/10 text-cyan-400 mb-4 text-2xl font-bold">
+                🛡️
+            </div>
+            <h2 class="text-2xl font-bold mb-3 text-white">Gatavošanās Pārbaudījumam</h2>
+            <p class="text-slate-300 mb-6 max-w-lg mx-auto leading-relaxed">
+                Šis tests ietver visus jautājumus par darbu elpošanai nepiemērotā un piesārņotā vidē. Katru reizi uzsākot vai atkārtojot testu, 
+                <span class="text-cyan-400 font-semibold">jautājumu secība un atbilžu varianti tiek sajaukti nejauši</span>.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <button onclick="startQuiz(10)" class="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-500 text-white font-medium px-6 py-3 rounded-xl transition shadow-lg shadow-cyan-900/30 cursor-pointer">
+                    Sākt īso testu (10 jautājumi)
+                </button>
+                <button onclick="startQuiz(allQuestions.length)" class="w-full sm:w-auto bg-slate-700 hover:bg-slate-600 text-white font-medium px-6 py-3 rounded-xl transition border border-slate-600 cursor-pointer">
+                    Sākt pilno testu (Visus <span id="total-count-badge">50</span> jautājumus)
+                </button>
+            </div>
+        </div>
+
+        <!-- Quiz Screen -->
+        <div id="quiz-screen" class="bg-slate-800 border border-slate-700 rounded-2xl p-6 sm:p-8 shadow-xl hidden fade-in">
+            <!-- Progress & Stats Bar -->
+            <div class="flex justify-between items-center mb-6 text-sm font-medium text-slate-400 border-b border-slate-700 pb-4">
+                <span id="question-counter">Jautājums 1 no 10</span>
+                <span id="score-counter" class="text-emerald-400">Pareizi: 0</span>
+            </div>
+
+            <!-- Question Text -->
+            <h3 id="question-text" class="text-lg sm:text-xl font-semibold text-white mb-6 leading-normal"></h3>
+
+            <!-- Options Container -->
+            <div id="options-container" class="space-y-3 mb-6"></div>
+
+            <!-- Explanation Box -->
+            <div id="explanation-box" class="hidden p-4 rounded-xl mb-6 bg-slate-900/80 border border-slate-700 text-sm">
+                <span id="explanation-text" class="text-slate-300"></span>
+            </div>
+
+            <!-- Navigation Button -->
+            <div class="flex justify-end">
+                <button id="next-btn" onclick="nextQuestion()" class="hidden bg-cyan-600 hover:bg-cyan-500 text-white font-medium px-6 py-3 rounded-xl transition shadow-lg shadow-cyan-900/30 cursor-pointer">
+                    Nākamais jautājums
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Screen -->
+        <div id="results-screen" class="bg-slate-800 border border-slate-700 rounded-2xl p-6 sm:p-8 shadow-xl text-center hidden fade-in">
+            <div id="result-icon" class="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 text-3xl font-bold">🎉</div>
+            <h2 class="text-2xl font-bold mb-2 text-white">Tests pabeigts!</h2>
+            <p id="result-score-text" class="text-lg text-slate-300 mb-6">Jūs atbildējāt pareizi uz 8 no 10 jautājumiem (80%)</p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button onclick="restartQuiz()" class="bg-cyan-600 hover:bg-cyan-500 text-white font-medium px-6 py-3 rounded-xl transition shadow-lg shadow-cyan-900/30 cursor-pointer">
+                    Mēģināt vēlreiz
+                </button>
+                <button onclick="showWelcomeScreen()" class="bg-slate-700 hover:bg-slate-600 text-white font-medium px-6 py-3 rounded-xl transition border border-slate-600 cursor-pointer">
+                    Atgriezties sākumā
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800/50 border-t border-slate-800 py-4 text-center text-xs text-slate-500">
+        Interaktīvs apmācības rīks drošības un glābšanas darbu speciālistiem
+    </footer>
+
+    <script>
+        const allQuestions = [
+            {
+                question: "Piesārņotā vidē, kādā gadījumā izveido rezerves grupu?",
+                options: [
+                    { text: "Piesārņotā vidē, ja strādā trīs un vairāk grupas, katrai grupai izveido vienu rezerves grupu. Ja nepieciešams, cilvēku glābšanai iesaista arī rezerves grupas;", isCorrect: false },
+                    { text: "katrai trijām grupām izveido rezerves grupu ar ne mazāk par trīs cilvēku sastāvā;", isCorrect: false },
+                    { text: "katrai grupai izveido vienu rezerves grupu;", isCorrect: true }
+                ]
+            },
+            {
+                question: "Vai glābšanas darbu vadītāja un darba iecirkņa vadītāja pienākumos ietilpst instruēt grupu pār iespējamo sakaru variantu, ja rodas sarežģījumi?",
+                options: [
+                    { text: "Jā", isCorrect: false },
+                    { text: "Nē", isCorrect: true }
+                ]
+            },
+            {
+                question: "Kad tiek veikta pārbaude Nr. 2?",
+                options: [
+                    { text: "tieši pirms darba elpošanas aparātā. Ziņo grupas komandierim ar pacelto labo roku skalā balsī nosaucot savu uzvārdu un spiedienu gaisa balonā;", isCorrect: true },
+                    { text: "tieši pirms darba elpošanas aparātā. aparātā, par pārbaudes rezultātiem ziņo ugunsgrēka dzēšanas un glābšanas darbu vadītājam vai iecirkņa priekšniekam;", isCorrect: false },
+                    { text: "tieši pirms darba aparātā, par pārbaudes rezultātiem ziņo dežūrmaiņas vecākajai amatpersonai;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kad tiek veikta pārbaude Nr. 1?",
+                options: [
+                    { text: "1) uzsākot dežūru; 2) pēc balona nomaiņas; 3) pēc aparāta remonta; 4) Par pārbaudes rezultātiem ziņo dežurmaiņas komandierim;", isCorrect: true },
+                    { text: "1) uzsākot dežūru; 2) pēc elpošanas aparāta remonta; 3) pārbaudes rezultātu ievada informācijas reģistrēšanas un resursu vadības informācijas sistēmā (IRRVIS);", isCorrect: false },
+                    { text: "1) uzsākot dežūru; 2) pēc elpošanas aparāta remonta; 3) pārbaudes rezultātu ievada elpošanas aparāta darba laika uzskaites kartītē;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Piesārņotā vidē GDV vai darba iecirkņa vadītājs pirms grupas darba uzsākšanas nodrošina:",
+                options: [
+                    { text: "1) notikuma norobežošanu; 2) atsārņošanas grupas komandieri; 3) nosaka grupas komandierim viņa darba pienākumus un atbildību;", isCorrect: false },
+                    { text: "1) notikuma vietas norobežošanu; 2) atsārņošanas grupas komandieri; 3) atsārņošanas dalībnieku darba laiku piesārņotā vidē; 4) norāda grupas komandierim atsārņošanas vietu;", isCorrect: false },
+                    { text: "1) notikuma norobežošanu; 2) norīko atsārņošanas grupas komandieri un nosaka tās dalībnieku skaitu; 3) norāda grupas komandierim atsārņošanas vietu un nosaka darba uzdevumu;", isCorrect: true }
+                ]
+            },
+            {
+                question: "No kā sastāv grupas obligātais aprīkojums?",
+                options: [
+                    { text: "glābšanas maskas, sakaru līdzekļi, apgaismes līdzekļi (nepietiekošas redzamības apstākļos);", isCorrect: true },
+                    { text: "glābšanas virve, sakaru līdzekļi, apgaismes līdzekļi (nepietiekošas redzamības apstākļos), lauznis, elpošanas aparāts;", isCorrect: false },
+                    { text: "elpošanas aparāts, rācija, apgaismes līdzekļi (nepietiekošas redzamības apstākļos), grupas aptieciņa, rezerves maskas;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Vai glābšanas darbu vadītājam ir tiesības veikt instruktāžu grupas komandierim?",
+                options: [
+                    { text: "Jā", isCorrect: true },
+                    { text: "Nē", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kad tiek veikta ķīmiskā aizsargtērpa pārbaude?",
+                options: [
+                    { text: "reizi pusgadā vai atbilstoši ražotāja prasībām;", isCorrect: false },
+                    { text: "reizi pusgadā vai pēc katras lietošanas;", isCorrect: false },
+                    { text: "reizi gadā vai pēc katras lietošanas, atbilstoši ražotāja prasībām;", isCorrect: true }
+                ]
+            },
+            {
+                question: "Kur glabājas amatpersonas elpošanas aparāta darba laika uzskaites kartīte?",
+                options: [
+                    { text: "teritoriālās struktūrvienības daļas, daļas postena un koledžas vadītā komandiera telpā;", isCorrect: false },
+                    { text: "elpošanas aparātu uzglabāšanas vietā vai dežūrmaiņas komandiera kabinetā;", isCorrect: true },
+                    { text: "teritoriālās struktūrvienības daļas, daļas postena un koledžas aizsardzības līdzekļu uzglabāšanas telpā;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kura no atbildēm Jūsuprāt ir pareiza?",
+                options: [
+                    { text: "ja notikuma vietā ierodas apakšvienība divu amatpersonu sastāvā un nepieciešams veikt cilvēku glābšanu no piedūmotās vides, glābēji nekavējoties uzsāk glābšanas darbus neskatoties no apstākļiem. Šajā gadījumā netiek ņemtas vērā piesardzības noteikumi;", isCorrect: false },
+                    { text: "ja notikuma vietā ierodas apakšvienība divu amatpersonu sastāvā un nepieciešams glābt cilvēkus no piedūmotās vides, tad GDV ir grupas komandieris un ugunsdzēsējs glābējs (autovadītājs) ir otrs grupas dalībnieks. Šajā gadījumā nav kontrolposteņa un tieša apdraudējuma glābēju dzīvībai vai veselībai;", isCorrect: true },
+                    { text: "ja notikuma vietā ierodas apakšvienība divu amatpersonu sastāvā un nepieciešams veikt cilvēku glābšanu no piedūmotās vides, ugunsdzēsēji norāda izejas virzienu un uzsāk dzēšanas darbus;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kas ir grupa?",
+                options: [
+                    { text: "darbam elpošanai nepiemērotā vidē norīkotas amatpersonas, ar aizsardzības līdzekļiem un aprīkojumu ugunsgrēka dzēšanai un glābšanas darbiem;", isCorrect: true },
+                    { text: "darbam elpošanai nepiemērotā vidē ekipēts personāls, kurš nodrošināts ar visu nepieciešamo ekipējumu un aprīkojumu darbu veikšanai dažādos laika apstākļos;", isCorrect: false },
+                    { text: "darbam elpošanai nepiemērotā vidē apmācītas amatpersonas, kuras ir nodrošinātas ar elpošanas aparātiem;", isCorrect: false },
+                    { text: "darbam elpošanai nepiemērotā vidē norīkotas iestādes vai koledžas amatpersonas, nodrošinātas ar elpošanas aparātiem un lukturi. Grupa ir patstāvīga vienība, tās darbu nav nepieciešams kontrolēt;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kādas ir prasības attiecībā pret amatpersonu teorētiskām un praktiskām (ieslēdzoties elpošanas aparātā) nodarbībām struktūrvienībās?",
+                options: [
+                    { text: "nodarbības notiek ne retāk ka reizi mēnesī ar ieslēgšanos aparātā uz laiku ne mazāku par 20 minūtēm. Nodarbības notiek saskaņā ar nodarbību plānu;", isCorrect: true },
+                    { text: "Nodarbības notiek pēc dežūrmaiņas komandiera rīkojuma ne biežāk ka reizi mēnesī.;", isCorrect: false },
+                    { text: "amatpersonas turpmākās teorētiskās un praktiskās nodarbības elpošanas aparātiem notiek svaigā gaisā atbilstoši mēneša nodarbību plānam. Elpošanas aparātu imitācijai var izmantot ķieģeļus mugursomā ar kopējo svaru 10 – 12 kilogrami;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kādi ir obligātie grupas aizsardzības līdzekļi?",
+                options: [
+                    { text: "elpošanas aparāti, sejas maskas, rezerves maskas;", isCorrect: false },
+                    { text: "elpošanas aparāti, maskas, glābjamā maska;", isCorrect: false },
+                    { text: "elpošanas maskas, sejas maskas, glābjamo maskas;", isCorrect: false },
+                    { text: "elpošanas aparāti, sejas maskas;", isCorrect: true }
+                ]
+            },
+            {
+                question: "Vai glābšanas darbu vadītājam ir tiesības organizēt un koordinēt grupu darbu?",
+                options: [
+                    { text: "Jā", isCorrect: true },
+                    { text: "Nē", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kāds ir kontrolposteņa dežuranta rokas apsējs?",
+                options: [
+                    { text: "oranžas krāsas piesprādze ar pelēkas krāsas (atstarojošu) uzrakstu \"KP\";", isCorrect: false },
+                    { text: "oranžas krāsas rokas apsējs ar sarkanās krāsas (atstarojošu) uzrakstu \"KP\";", isCorrect: false },
+                    { text: "oranžas krāsas rokas apsējs ar tumši pelēkas krāsas uzrakstu \"KP\"-(Kriminālā Policija);", isCorrect: false },
+                    { text: "oranžas krāsas rokas apsējs ar melnās krāsas uzrakstu \"KP\";", isCorrect: false },
+                    { text: "Oranžas krāsas rokas apsējs ar pelēkas krāsas (atstarojošu) uzrakstu \"KP\" (Kontrolpostenis);", isCorrect: true }
+                ]
+            },
+            {
+                question: "Kas ir aizsardzības līdzekļi?",
+                options: [
+                    { text: "saspiesta gaisa elpošanas aparāti, kurus izmanto, lai aizsargātu glābjamā un citu cilvēku drošību un veselību pret bīstamu vai kaitīgu faktoru iedarbību;", isCorrect: false },
+                    { text: "saspiesta gaisa elpošanas aparāti, kurus amatpersona ar speciālo dienesta pakāpi izmanto, lai aizsargātu cilvēku drošību un veselību no nelaimes;", isCorrect: false },
+                    { text: "ierīces un saspiesta gaisa elpošanas aparāti, kurus amatpersona izmanto, lai aizsargātu savu drošību un veselību pret bīstamu vai kaitīgu faktoru iedarbību;", isCorrect: true },
+                    { text: "izstrādājumi, ierīces, iekārtas un saspiesta gaisa elpošanas aparāti, kurus amatpersona ar speciālo dienesta pakāpi izmanto, lai aizsargātu visu nodarbināto drošību no nelaimes gadījumiem darba vietā un notikuma vietā;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kādā veidā transportē sejas un glābšanas maskas?",
+                options: [
+                    { text: "transportlīdzekļa apsildāmā kabīnē;", isCorrect: false },
+                    { text: "transportlīdzekļa kabīnē zem sēdekļa;", isCorrect: false },
+                    { text: "speciālās uzglabāšanas kārbās;", isCorrect: true }
+                ]
+            },
+            {
+                question: "Kāds ir atsārņošanas vietas pamata aprīkojums?",
+                options: [
+                    { text: "1) atsārņošanas iekārta vai šļūteņu līnija ar noslēdzamu stobru, kuram ir izsmidzināta strūkla; 2) notekūdeņu savākšanas un uzglabāšanas iekārta; 3) atsārņošanas un kontroles līdzekļi;", isCorrect: true },
+                    { text: "1) atsārņošanas iekārta; 2) notekūdeņu uzglabāšanas un konservācijas iekārta; 3) slotas un lāpstas; 4) atsārņošanas kontroles līdzekļi;", isCorrect: false },
+                    { text: "1) atsārņošanas iekārta; 2) šļūteņu līnija, 3) notekūdeņu uzglabāšanas un konservācijas iekārta; 4) gāzes analizators;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Amatpersona, kura lietojusi aizsardzības līdzekļus, pēc pielietošanas:",
+                options: [
+                    { text: "1) ja ir nepieciešams, dezinficē un novieto aizsardzības līdzekļu uzglabāšanas vietā; 2) pabeidzot darbu telpu aizslēdz un atslēgas nodod koledžas sakaru punktā;", isCorrect: false },
+                    { text: "1) veic apkopi – mazgā, dezinficē un žāvē to uzglabāšanas vietā, 2) pabeidzot apkopi telpu aizslēdz un atslēgas nodod daļas vai daļas postena vai koledžas sakaru punktā.", isCorrect: true },
+                    { text: "1) akurāti noliek vai pakar atbilstoši prasībām aizsardzības līdzekļu uzglabāšanas vietā; 2) pabeidzot darbu telpu aizslēdz un atslēgas nodod teritoriālās struktūrvienības daļas, daļas postena vai koledžas sakaru punktā;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Glābšanas darbu vadītājs vai darba iecirkņa vadītājs organizējot darbu elpošanai nepiemērotā vidē:",
+                options: [
+                    { text: "norīko grupas komandieri un atgādina viņa pienākumiem, nosaka grupas komandierim darba apjomu, nosaka kontrolposteņa atbildību ārkārtas situācijās, norāda kontrolposteņa dežuranta atrašanās vietu;", isCorrect: false },
+                    { text: "norīko grupas komandieri un nosaka dalībnieku skaitu, nosaka grupas komandierim uzdevumu, norīko kontrolposteņa dežurantu un norāda posteņa atrašanās vietu;", isCorrect: true },
+                    { text: "nosaka grupas komandiera pienākumus, nosaka grupas komandierim darba uzdevumu, norīko kontrolposteņa dežurantu, norāda kontrolposteņa atrašanās vietu piedūmotā vidē;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kādas darbības jāveic gadījumā ja amatpersona prombūtnes dēļ nepiedalījās nodarbībās ar elpošanas aparātiem?",
+                options: [
+                    { text: "pēc atgriešanās no prombūtnes, dežūrmaiņas komandieris organizē nodarbības elpošanas aparātos ar šo amatpersonu;", isCorrect: true },
+                    { text: "pēc atgriešanās no prombūtnes nodot savu sejas masku;", isCorrect: false },
+                    { text: "pēc atgriešanās no prombūtnes piedalās nodarbībās ar elpošanas aparātu un pilda dežūrmaiņas komandiera rīkojumus;", isCorrect: false },
+                    { text: "pēc atgriešanās no prombūtnes atkārtoti iepazīstas ar mācību materiāliem par darbu elpošanai nepiemērotā vidē;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kāds ir grupu un rezerves grupu skaits strādājot telpās ar sarežģītu plānojumu vai kuģos?",
+                options: [
+                    { text: "Divas grupas no diviem dalībniekiem un rezervē viena grupa no diviem dalībniekiem (2+2 un 2).", isCorrect: true },
+                    { text: "Divas grupas no diviem dalībniekiem un rezervē divas grupas no diviem dalībniekiem rezervē (2+2 un 2+2)", isCorrect: false },
+                    { text: "Viena grupa no četriem dalībniekiem un rezervē viena grupa no diviem dalībniekiem (4 un 2)", isCorrect: false },
+                    { text: "Viena grupa no četriem dalībniekiem un rezervē viena grupa no četriem dalībniekiem (4 un 4)", isCorrect: false }
+                ]
+            },
+            {
+                question: "Piesārņotā vidē:",
+                options: [
+                    { text: "GDV vai darba iecirkņa vadītājs automātiski norīko ne vairāk, ka trīs grupas vienam kontrolposteņa dežurantam;", isCorrect: false },
+                    { text: "GDV vai darba iecirkņa vadītājs nenorīko kontrolposteņa dežurantu vispār;", isCorrect: false },
+                    { text: "kontrolpostenis tiek norīkots katrai grupai;", isCorrect: true }
+                ]
+            },
+            {
+                question: "Piedūmotā vidē, kādā gadījumā izveido rezerves grupu?",
+                options: [
+                    { text: "katrām trim grupām izveido vienu rezerves grupu;", isCorrect: true },
+                    { text: "ja strādā divas grupas, uz katru grupu izveido vienu rezerves grupu;", isCorrect: false },
+                    { text: "ja vienlaicīgi strādā trīs grupas, tad izveido trīs grupu rezervi;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kur notiek atkārtota ieslēgšanās elpošanas aparātā?",
+                options: [
+                    { text: "ja gaisa temperatūra ir zemāka par nulles grādiem, atkārtota ieslēgšanās notiek telpās vai ugunsdzēsības automobiļa kabīnē;", isCorrect: false },
+                    { text: "ja gaisa temperatūra ir zemāka par plus pieciem grādiem, notiek telpās vai ugunsdzēsības automobiļa kabīnē;", isCorrect: true },
+                    { text: "ja gaisa temperatūra ir zemāka par mīnus pieciem grādiem - telpās ar temperatūru ne zemāku par nulles grādiem;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kas ir piedūmota vide?",
+                options: [
+                    { text: "vide, ko veido degt spējīgo materiālu sadegšanas procesā radušās kancerogēna vielas, sadegšanas produkti (kvēpu daļiņas), minerālvielas (pelnu daļiņas), kā arī sveķvielas;", isCorrect: false },
+                    { text: "vide, ko veido kurināmā sadegšanas procesā radušās gāzes, nepilnīgas sadegšanas pārtikas produkti, minerālvielas un minerālmēslojumi (pelni), kā arī sveces un svekvielas;", isCorrect: false },
+                    { text: "vide, ko veido kurināmā sadegšanas procesā radušies sadegšanas produkti (kvēpu daļiņas), minerālvielas (pelnu daļiņas), kas būtiski kaitē cilvēka veselībai;", isCorrect: false },
+                    { text: "vide, ko veido kurināmā sadegšanas procesā radušās gāzes, nepilnīgas sadegšanas produkti (kvēpu daļiņas), minerālvielas (pelnu daļiņas), kā arī sveķvielas;", isCorrect: true }
+                ]
+            },
+            {
+                question: "Kas vada teorētiskās un praktiskās nodarbības svaigā gaisā ar elpošanas aparātiem?",
+                options: [
+                    { text: "dežūrmaiņas komandieris;", isCorrect: true },
+                    { text: "struktūrvienības komandieris;", isCorrect: false },
+                    { text: "vada komandiera vietnieks;", isCorrect: false },
+                    { text: "daļas komandieris;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kas var strādāt elpošanai nepiemērotā vidē?",
+                options: [
+                    { text: "apmācīta amatpersona koledžā vai citā izglītības iestādē ar ugunsdzēsības jomā akreditētu izglītības programmu;", isCorrect: true },
+                    { text: "var strādāt iestādes vai koledžas amatpersona, kura nav apmācīta koledžā, bet ieguva tehnisko izglītību citā iestādē ar citām izglītības programmām;", isCorrect: false },
+                    { text: "var strādāt iestādes vai koledžas amatpersona, kura ir apmācīta koledžā vai citā izglītības iestādē;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Veicot izlūkošanu piedūmotā vidē:",
+                options: [
+                    { text: "kontrolpostenis var strādāt vienlaicīgi ne vairāk ka ar vienu grupu;", isCorrect: false },
+                    { text: "veicot izlūkošanu, ugunsgrēka dzēšanu un glābšanas darbus piedūmotā vidē, kontrolposteņa dežurants tiek nozīmēts ne mazāk ka uz trijiem grupas dalībniekiem;", isCorrect: false },
+                    { text: "kontrolpostenis var strādāt vienlaicīgi ne vairāk ka ar trijām grupām;", isCorrect: true }
+                ]
+            },
+            {
+                question: "Kāds ir minimālais darba laiks ieslēdzoties elpošanas aparāta nodarbībās?",
+                options: [
+                    { text: "divdesmit septiņas minūtes;", isCorrect: false },
+                    { text: "ne mazāk, ka divdesmit minūtes;", isCorrect: true },
+                    { text: "45 min;", isCorrect: false },
+                    { text: "40 min;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kur notiek grupu maiņa?",
+                options: [
+                    { text: "telpās, ar GDV vai darba iecirkņa vadītāja rīkojumu grupu maiņa var notikt svaigā gaisā arī zemas temperatūras apstākļos;", isCorrect: false },
+                    { text: "telpās, ar GDV vai darba iecirkņa vadītāja rīkojumu grupu maiņa var notikt tālāk, aiz kontrolposteņa - svaigā gaisā;", isCorrect: false },
+                    { text: "svaigā gaisā - kontrolpostenī. GDV vai darba iecirkņa vadītāja rīkojums var ļaut veikt grupu maiņu elpošanai nepiemērotā vidē;", isCorrect: true }
+                ]
+            },
+            {
+                question: "Kas ir elpošanas aparāts?",
+                options: [
+                    { text: "autonoma elpošanas ierīce ar saspiestu gaisu, kura izelpoto gaisu atkārtoti neizmanto un gaisa padeve notiek atbilstoši nepārtrauktai gaisa padevei;", isCorrect: false },
+                    { text: "autonoma elpošanas ierīce ar saspiestu gaisu, kura izelpoto gaisu atkārtoti neizmanto un gaisa padeve notiek atbilstoši elpošanas vajadzībām;", isCorrect: true },
+                    { text: "autonoma elpošanas ierīce, kura izmanto izelpoto gaisu atkārtoti un gaisa padeve notiek atbilstoši elpošanas vajadzībām;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kas ir atsārņošana?",
+                options: [
+                    { text: "bīstamo vielu aizvešana no notikuma vietas vai neitralizēšana uz vietas līdz nekaitīgam līmenim;", isCorrect: false },
+                    { text: "aizsargtērpa tīrīšana skalojot;", isCorrect: false },
+                    { text: "bīstamo vielu noņemšana vai neitralizēšana līdz nekaitīgam līmenim;", isCorrect: true }
+                ]
+            },
+            {
+                question: "Kontrolposteņa dežurants kontrolē:",
+                options: [
+                    { text: "grupas pieļaujamo uzturēšanās laiku elpošanas nepiemērotā vidē; grupas darba apstākļus bīstamā zonā; ķīmisko aizsargtērpu pārbaudes periodu; glābšanas darbu vai darba iecirkņa vadītāja ziņojumu par nelaimes gadījumu, radio sakaru pārrāvumu, u.c. gadījumiem;", isCorrect: false },
+                    { text: "nepiederētu personu nokļūšanu piedūmotā vidē;", isCorrect: false },
+                    { text: "grupas pieļaujamo uzturēšanās laiku elpošanas nepiemērotā vidē; nepiederošu personu neielaišanu elpošanai nepiemērotā vidē; ķīmisko aizsargtērpu pieļaujamā aizsardzības laika ievērošanu;", isCorrect: true }
+                ]
+            },
+            {
+                question: "Kura no atbildēm Jūsuprāt ir pareiza?",
+                options: [
+                    { text: "piesārņotā vidē grupa izmanto vienāda aizsardzības līmeņa ķīmiskos aizsargtērpus. Ja ražotājam ķīmiskajiem aizsargtērpiem noteikti dažādi aizsardzības laiki, veicot aprēķinus, ņem vērā ķīmisko aizsargtērpu ar mazāko pieļaujamo aizsardzības laiku;", isCorrect: true },
+                    { text: "piesārņotā vidē, izmantojot dažāda tipa aizsargtērpus, ķīmiskam aizsargtērpam ar mazāko pieļaujamo aizsardzības laiku virsū velk otrā tāda paša tipa tērpu;", isCorrect: false },
+                    { text: "piesārņotā vidē, izmantojot dažāda tipa aizsargtērpus, ķīmisko aizsargtērpu ar mazāko pieļaujamo aizsardzības laiku neizmanto, bet nodrošina vienāda tipa ķīmiskos aizsargtērpus;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kādas ir elpošanas aparāta komplektācijas prasības?",
+                options: [
+                    { text: "Elpošanas aparātu komplektē ar diviem baloniem, kuru gaisa daudzums ir ne mazāks kā 6 litri katrā, ar pieslēgumu sejas maskai, iekšējo masku, kas nodrošina maskas ventilāciju pret aizsvīšanu;", isCorrect: false },
+                    { text: "1) Balons ar gaisa daudzumu ne mazāks kā 2000 litri, 2) pieslēgums sejas maskai un glābšanas maskai, 3) pieslēgums ķīmiskā aizsargtērpa ventilācijas sistēmai, 4) pāreju divu gaisa balonu pieslēgšanai elpošanas aparātam;", isCorrect: true },
+                    { text: "1) Elpošanas aparātu komplektē ar balonu, kurā gaisa daudzums ir ne mazāks kā 1800 litri, 2) pieslēgums sejas maskai 3) pieslēgums glābšanas maskai, 4) ķīmiskā aizsargtērpa ventilācijas sistēmai pārspiediena nodrošināšanai;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kāda veidā notiek elpošanas aparātu un rezerves balonu transportēšana?",
+                options: [
+                    { text: "transportlīdzekļa kabīnes sēdekļu atveltnēs integrētos vai kabīnes apjomā uzstādītos speciālos tapsētos turētājos;", isCorrect: false },
+                    { text: "1) transportlīdzekļa kabīnes sēdekļu kastēs 2) kabīnes apjomā uzstādītos metāla turētājos, 3) transportlīdzekļa aprīkojuma nodalījumos;", isCorrect: false },
+                    { text: "1) kabīnes sēdekļu atveltnēs integrētos turētājos 2) kabīnē uzstādītos tapsētos turētājos, 3) aprīkojuma nodalījumos nostiprinātos tapsētos turētājos;", isCorrect: true }
+                ]
+            },
+            {
+                question: "Kas nosaka grupas aizsardzības līdzekļus un aprīkojumu?",
+                options: [
+                    { text: "dežūrmaiņas komandieris;", isCorrect: false },
+                    { text: "grupas komandieris;", isCorrect: false },
+                    { text: "GDV;", isCorrect: false },
+                    { text: "GDV vai darba iecirkņa vadītājs;", isCorrect: true }
+                ]
+            },
+            {
+                question: "Kas ir atsārņošanas grupa?",
+                options: [
+                    { text: "Valsts vides dienesta personas, nodrošinātas ar neitralizācijas un mazgāšanas līdzekļiem aprīkojuma atsārņošanai;", isCorrect: false },
+                    { text: "norīkotas iestādes vai koledžas amatpersonas, nodrošinātas ar individuāliem aizsardzības līdzekļiem un aprīkojumu, kas var darboties arī citur;", isCorrect: false },
+                    { text: "norīkotas iestādes vai koledžas amatpersonas, nodrošinātas ar aizsardzības līdzekļiem un aprīkojumu atsārņošanas darbiem;", isCorrect: true }
+                ]
+            },
+            {
+                question: "Vai GDV var ietekmēt un/vai mainīt aizsardzības līdzekļu veidu un skaitu?",
+                options: [
+                    { text: "GDV vai darba iecirkņa vadītājs atkarībā no situācijas notikuma vietā daļēji nosaka grupas papildus aizsardzības līdzekļu pārbaudes veidu un laiku;", isCorrect: false },
+                    { text: "GDV vai darba iecirkņa vadītājs atkarībā no situācijas nosaka grupas papildus aizsardzības līdzekļu un aprīkojuma veidu un skaitu;", isCorrect: true },
+                    { text: "GDV vai darba iecirkņa vadītājs atkarībā no situācijas notikuma vietā nosaka grupas aizsardzības līdzekļu un aprīkojuma pārbaudes laiku un veidu;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kur izveidu ieeju piesārņotā vidē un izeju no tās?",
+                options: [
+                    { text: "ieeju piesārņotā vidē izveido no vēja puses, bet izeju objekta pretējā pusē;", isCorrect: false },
+                    { text: "pa vējam piesārņotā vidē, bet atdalīti;", isCorrect: false },
+                    { text: "vēja virzienā svaigā gaisā, vienu otrai blakus, bet atdalīti;", isCorrect: true }
+                ]
+            },
+            {
+                question: "Kas ir piesārņota vide?",
+                options: [
+                    { text: "ķīmisku, bioloģisku un radioaktīvu vielu vide, kas izveidojusies cilvēka darbības rezultātā un kura kaitē dzīvajiem organismiem;", isCorrect: false },
+                    { text: "ķīmisku, bioloģisku un radioaktīvu vielu vide, kas izveidojusies cilvēka bezdarbības, rezultātā un kurai ir bīstama ietekme uz dzīvajiem organismiem;", isCorrect: false },
+                    { text: "ķīmisku, bioloģisku un radioaktīvu vielu vide, kas izveidojusies cilvēka darbības, avārijas vai dabisku procesu rezultātā un kurai ir kaitīga ietekme uz dzīvajiem organismiem;", isCorrect: true },
+                    { text: "ķīmisku, bioloģisku un radioaktīvu vielu vide, kas izveidojusies cilvēka bezdarbības rezultātā un kurai ir bīstama ietekme uz dzīvajiem organismiem un cilvēka iekšējiem orgāniem;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kādā veidā transportē ķīmiskos aizsargtērpus?",
+                options: [
+                    { text: "iepakojumā, vai somā, vai atbilstoši ražotāja noteiktajām prasībām;", isCorrect: true },
+                    { text: "pakārtus aiz kājām, vai iepakojumā, vai kastē transportlīdzekļa apsildāmā kabīnē;", isCorrect: false },
+                    { text: "nodalījumos kur nav asu priekšmetu;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kas ir kontrolpostenis?",
+                options: [
+                    { text: "vieta pie ieejas elpošanai nepiemērotā vidē, kur strādā kontrolposteņa dežurants;", isCorrect: true },
+                    { text: "vieta pie ieejas elpošanai nepiemērotā vidē, kur strādā kontrolposteņa dežurants un nepieciešamības gadījumā grupas dalībnieks;", isCorrect: false },
+                    { text: "vieta, kur atrodas amatpersona ar oranžas krāsas uzšuvi \"KP\" uz rokas, rāciju, zīmuli vai pildspalvu, Kontrolpostenis tiek izlikts pie iebraukšanas objektu teritorijā;", isCorrect: false },
+                    { text: "vieta, kur strādā kontrolposteņa dežurants un viņa tiešais priekšnieks;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kāds ir grupas sastāvs piesārņotā vidē?",
+                options: [
+                    { text: "trīs amatpersonas kopā ar grupas komandieri;", isCorrect: true },
+                    { text: "piesārņotā vidē grupa sastāv no grupas komandiera un vismaz viena grupas dalībnieka. GDV vai darba iecirkņa vadītājs var mainīt grupas dalībniekus;", isCorrect: false },
+                    { text: "piesārņotā vidē grupas sastāvs - grupas komandieris un trīs cilvēki;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Ko papildus var izvēlēties GDV vai iecirkņa vadītājs, personālam strādājot piesārņotā vidē?",
+                options: [
+                    { text: "atkarībā no bīstamās vielas veida, nosaka atsārņošanas aprīkojuma pielietošanas kārtību;", isCorrect: false },
+                    { text: "atkarībā no bīstamās vielas daudzuma, nosaka atsārņošanas paņēmiena veidu;", isCorrect: false },
+                    { text: "atkarībā no vielas veida, pats nosaka atsārņošanas papildus aprīkojuma veidu un skaitu;", isCorrect: true }
+                ]
+            },
+            {
+                question: "Kādi pienākumi ir atsārņošanas grupas komandierim?",
+                options: [
+                    { text: "izveidot atsārņošanas grupu; nodrošināt grupu ar darbu;", isCorrect: false },
+                    { text: "izveidot atsārņošanas vietu; nodrošināt nepārtrauktu ūdens piegādi;", isCorrect: false },
+                    { text: "izveidot atsārņošanas vietu un nodrošināt tā darbu;", isCorrect: true }
+                ]
+            },
+            {
+                question: "Kas veic sākotnējo amatpersonas apmācību darbam elpošanai nepiemērotā vidē?",
+                options: [
+                    { text: "veic VUGD UCAK;", isCorrect: true },
+                    { text: "veic katra amatpersona individuāli;", isCorrect: false },
+                    { text: "veic dežurmaiņu personāls struktūrvienību daļas un posteņos;", isCorrect: false }
+                ]
+            },
+            {
+                question: "Kas ir elpošanai piemērota vide?",
+                options: [
+                    { text: "vide, kurā var mierīgi elpot;", isCorrect: false },
+                    { text: "vide bez cilvēka veselībai bīstama ķīmiska, bioloģiska, radioaktīva piesārņojuma ar redzamību ne mazāk ka trīs kilometri;", isCorrect: false },
+                    { text: "vide bez cilvēka veselībai bīstama ķīmiska, bioloģiska, radioaktīva piesārņojuma, kurā skābekļa daudzums ir ne mazāks par 19.5%;", isCorrect: true }
+                ]
+            },
+            {
+                question: "Kāds ir grupas sastāvs dūmos un vai GDV vai iecirkņa priekšnieks drīkst mainīt grupas sastāvu?",
+                options: [
+                    { text: "piedūmotā vidē grupa sastāv no grupas komandiera un vismaz viena grupas dalībnieka. Glābšanas darbu vadītājs vai darba iecirkņa vadītājs nevar ietekmēt grupu skaitu un grupu dalībnieku skaitu;", isCorrect: false },
+                    { text: "piedūmotā vidē grupa sastāv no grupas komandiera un vismaz viena grupas dalībnieka. Glābšanas darbu vadītājs vai darba iecirkņa vadītājs nosaka grupu pārvietošanās kārtību un secību piedūmotā vidē. GDV vai iecirkņa priekšnieks neietekmē grupas sastāvu;", isCorrect: false },
+                    { text: "grupa sastāv no komandiera un vismaz viena dalībnieka. GDV vai darba iecirkņa vadītājs var palielināt grupas skaitu pēc sava uzskata;", isCorrect: true }
+                ]
+            }
+        ];
+
+        let currentQuizQuestions = [];
+        let currentIndex = 0;
+        let score = 0;
+        let selectedOptionIndex = null;
+        let isAnswered = false;
+
+        document.getElementById('total-count-badge').innerText = allQuestions.length;
+
+        function shuffleArray(array) {
+            let arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function startQuiz(count) {
+            // Shuffle all questions first, then slice the desired amount
+            const shuffledPool = shuffleArray(allQuestions);
+            currentQuizQuestions = shuffledPool.slice(0, Math.min(count, shuffledPool.length));
+            
+            currentIndex = 0;
+            score = 0;
+
+            document.getElementById('welcome-screen').classList.add('hidden');
+            document.getElementById('results-screen').classList.add('hidden');
+            document.getElementById('quiz-screen').classList.remove('hidden');
+            document.getElementById('quiz-progress-header').classList.remove('hidden');
+
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            isAnswered = false;
+            selectedOptionIndex = null;
+            document.getElementById('next-btn').classList.add('hidden');
+            document.getElementById('explanation-box').classList.add('hidden');
+
+            const qData = currentQuizQuestions[currentIndex];
+            
+            document.getElementById('question-counter').innerText = `Jautājums ${currentIndex + 1} no ${currentQuizQuestions.length}`;
+            document.getElementById('quiz-progress-header').innerText = `Progress: ${currentIndex + 1}/${currentQuizQuestions.length}`;
+            document.getElementById('score-counter').innerText = `Pareizi: ${score}`;
+            document.getElementById('question-text').innerText = qData.question;
+
+            // Shuffle answer options for this question so order changes every time
+            const shuffledOptions = shuffleArray(qData.options);
+            qData.currentShuffledOptions = shuffledOptions;
+
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            shuffledOptions.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-4 rounded-xl border border-slate-700 bg-slate-700/50 hover:bg-slate-700 text-slate-200 transition flex items-start gap-3 cursor-pointer";
+                btn.innerHTML = `
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-800 border border-slate-600 text-xs text-slate-400 shrink-0 mt-0.5">${String.fromCharCode(65 + idx)}</span>
+                    <span class="leading-normal">${opt.text}</span>
+                `;
+                btn.onclick = () => selectOption(idx);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function selectOption(optionIndex) {
+            if (isAnswered) return;
+            isAnswered = true;
+
+            const qData = currentQuizQuestions[currentIndex];
+            const selectedOpt = qData.currentShuffledOptions[optionIndex];
+            const optionButtons = document.getElementById('options-container').children;
+
+            if (selectedOpt.isCorrect) {
+                score++;
+                document.getElementById('score-counter').innerText = `Pareizi: ${score}`;
+            }
+
+            // Highlight buttons
+            for (let i = 0; i < optionButtons.length; i++) {
+                const opt = qData.currentShuffledOptions[i];
+                const btn = optionButtons[i];
+                btn.disabled = true;
+                btn.classList.remove('hover:bg-slate-700', 'bg-slate-700/50', 'cursor-pointer');
+
+                if (opt.isCorrect) {
+                    btn.className = "w-full text-left p-4 rounded-xl border border-emerald-500/50 bg-emerald-950/40 text-emerald-200 flex items-start gap-3";
+                } else if (i === optionIndex) {
+                    btn.className = "w-full text-left p-4 rounded-xl border border-rose-500/50 bg-rose-950/40 text-rose-200 flex items-start gap-3";
+                } else {
+                    btn.className = "w-full text-left p-4 rounded-xl border border-slate-700 bg-slate-800/30 text-slate-500 opacity-60 flex items-start gap-3";
+                }
+            }
+
+            // Show explanation box
+            const explanationBox = document.getElementById('explanation-box');
+            const explanationText = document.getElementById('explanation-text');
+            if (selectedOpt.isCorrect) {
+                explanationBox.className = "p-4 rounded-xl mb-6 bg-emerald-950/60 border border-emerald-800/50 text-sm fade-in";
+                explanationText.innerHTML = "✅ <strong class='text-emerald-300'>Pareizi!</strong> Šī ir pareizā atbilde.";
+            } else {
+                explanationBox.className = "p-4 rounded-xl mb-6 bg-rose-950/60 border border-rose-800/50 text-sm fade-in";
+                explanationText.innerHTML = "❌ <strong class='text-rose-300'>Nepareizi.</strong> Pareizā atbilde ir atzīmēta ar zaļu krāsu.";
+            }
+
+            // Show next button or finish button
+            const nextBtn = document.getElementById('next-btn');
+            nextBtn.classList.remove('hidden');
+            if (currentIndex === currentQuizQuestions.length - 1) {
+                nextBtn.innerText = "Skatīt rezultātus";
+            } else {
+                nextBtn.innerText = "Nākamais jautājums";
+            }
+        }
+
+        function nextQuestion() {
+            currentIndex++;
+            if (currentIndex < currentQuizQuestions.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('quiz-screen').classList.add('hidden');
+            document.getElementById('quiz-progress-header').classList.add('hidden');
+            document.getElementById('results-screen').classList.remove('hidden');
+
+            const percentage = Math.round((score / currentQuizQuestions.length) * 100);
+            const scoreText = document.getElementById('result-score-text');
+            const resultIcon = document.getElementById('result-icon');
+
+            scoreText.innerText = `Jūs pareizi atbildējāt uz ${score} no ${currentQuizQuestions.length} jautājumiem (${percentage}%).`;
+
+            if (percentage >= 80) {
+                resultIcon.innerHTML = "🏆";
+                resultIcon.className = "inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/10 text-emerald-400 mb-4 text-3xl font-bold";
+            } else if (percentage >= 50) {
+                resultIcon.innerHTML = "📈";
+                resultIcon.className = "inline-flex items-center justify-center w-20 h-20 rounded-full bg-amber-500/10 text-amber-400 mb-4 text-3xl font-bold";
+            } else {
+                resultIcon.innerHTML = "💡";
+                resultIcon.className = "inline-flex items-center justify-center w-20 h-20 rounded-full bg-rose-500/10 text-rose-400 mb-4 text-3xl font-bold";
+            }
+        }
+
+        function restartQuiz() {
+            startQuiz(currentQuizQuestions.length);
+        }
+
+        function showWelcomeScreen() {
+            document.getElementById('quiz-screen').classList.add('hidden');
+            document.getElementById('results-screen').classList.add('hidden');
+            document.getElementById('quiz-progress-header').classList.add('hidden');
+            document.getElementById('welcome-screen').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
